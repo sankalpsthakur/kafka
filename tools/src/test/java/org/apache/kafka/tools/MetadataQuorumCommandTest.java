@@ -165,6 +165,35 @@ class MetadataQuorumCommandTest {
                         "--command-config", tmpfile.getAbsolutePath(), "describe", "--status"));
     }
 
+    @Test
+    public void testRemoveControllerDryRunOutput() {
+        String output = ToolsTestUtils.captureStandardOut(() ->
+            assertEquals(0, MetadataQuorumCommand.mainNoExit(
+                "--bootstrap-server", "localhost:9092",
+                "remove-controller",
+                "--controller-id", "2003",
+                "--controller-directory-id", "MkWfVYpS_qAWFaz7GuOkRg",
+                "--dry-run")));
+        assertEquals("DRY RUN of removing KRaft controller 2003 with directory id MkWfVYpS_qAWFaz7GuOkRg", output);
+    }
+
+    @Test
+    public void testRemoveControllerDryRunWithUnregisterOutput() {
+        String output = ToolsTestUtils.captureStandardOut(() ->
+            assertEquals(0, MetadataQuorumCommand.mainNoExit(
+                "--bootstrap-server", "localhost:9092",
+                "remove-controller",
+                "--controller-id", "2003",
+                "--controller-directory-id", "MkWfVYpS_qAWFaz7GuOkRg",
+                "--dry-run",
+                "--unregister")));
+        assertEquals(
+            "DRY RUN of removing KRaft controller 2003 with directory id MkWfVYpS_qAWFaz7GuOkRg"
+                + System.lineSeparator()
+                + "DRY RUN of unregistering KRaft controller 2003",
+            output);
+    }
+
     @ClusterTest(types = {Type.CO_KRAFT})
     public void testHumanReadableOutput(ClusterInstance cluster) {
         assertEquals(1, MetadataQuorumCommand.mainNoExit("--bootstrap-server", cluster.bootstrapServers(), "describe", "--human-readable"));

@@ -50,31 +50,29 @@ import static org.mockito.Mockito.when;
 public class MetadataQuorumCommandUnitTest {
     @Test
     public void testRemoveControllerDryRun() {
-        List<String> outputs = List.of(
-            ToolsTestUtils.captureStandardOut(() ->
-                assertEquals(0, MetadataQuorumCommand.mainNoExit("--bootstrap-server", "localhost:9092",
-                    "remove-controller",
-                    "--controller-id", "2",
-                    "--controller-directory-id", "_KWDkTahTVaiVVVTaugNew",
-                    "--dry-run"))).split("\n"));
-        assertTrue(outputs.contains("DRY RUN of removing KRaft controller 2 with directory id _KWDkTahTVaiVVVTaugNew"),
-            "Failed to find expected output in stdout: " + outputs);
+        String output = ToolsTestUtils.captureStandardOut(() ->
+            assertEquals(0, MetadataQuorumCommand.mainNoExit("--bootstrap-server", "localhost:9092",
+                "remove-controller",
+                "--controller-id", "2",
+                "--controller-directory-id", "_KWDkTahTVaiVVVTaugNew",
+                "--dry-run")));
+        assertEquals("DRY RUN of removing KRaft controller 2 with directory id _KWDkTahTVaiVVVTaugNew", output);
     }
 
     @Test
     public void testRemoveControllerDryRunWithUnregister() {
-        List<String> outputs = List.of(
-            ToolsTestUtils.captureStandardOut(() ->
-                assertEquals(0, MetadataQuorumCommand.mainNoExit("--bootstrap-server", "localhost:9092",
-                    "remove-controller",
-                    "--controller-id", "2",
-                    "--controller-directory-id", "_KWDkTahTVaiVVVTaugNew",
-                    "--dry-run",
-                    "--unregister"))).split("\n"));
-        assertTrue(outputs.contains("DRY RUN of removing KRaft controller 2 with directory id _KWDkTahTVaiVVVTaugNew"),
-            "Failed to find expected output in stdout: " + outputs);
-        assertTrue(outputs.contains("DRY RUN of unregistering KRaft controller 2"),
-            "Failed to find expected unregister output in stdout: " + outputs);
+        String output = ToolsTestUtils.captureStandardOut(() ->
+            assertEquals(0, MetadataQuorumCommand.mainNoExit("--bootstrap-server", "localhost:9092",
+                "remove-controller",
+                "--controller-id", "2",
+                "--controller-directory-id", "_KWDkTahTVaiVVVTaugNew",
+                "--dry-run",
+                "--unregister")));
+        assertEquals(
+            "DRY RUN of removing KRaft controller 2 with directory id _KWDkTahTVaiVVVTaugNew"
+                + System.lineSeparator()
+                + "DRY RUN of unregistering KRaft controller 2",
+            output);
     }
 
     @Test
@@ -320,17 +318,30 @@ public class MetadataQuorumCommandUnitTest {
     }
 
     @Test
+    public void testRemoveControllerSuccessOutput() {
+        Admin admin = mockAdminForRemoveController(completedFuture(null), null);
+        String stdout = ToolsTestUtils.captureStandardOut(() ->
+            assertDoesNotThrow(() ->
+                MetadataQuorumCommand.handleRemoveController(admin, REMOVE_CONTROLLER_ID,
+                    REMOVE_DIRECTORY_ID_STRING, false, false)));
+        assertEquals("Removed KRaft controller " + REMOVE_CONTROLLER_ID
+                + " with directory id " + REMOVE_DIRECTORY_ID_STRING,
+            stdout);
+    }
+
+    @Test
     public void testRemoveControllerWithUnregisterSuccess() {
         Admin admin = mockAdminForRemoveController(completedFuture(null), completedFuture(null));
         String stdout = ToolsTestUtils.captureStandardOut(() ->
             assertDoesNotThrow(() ->
                 MetadataQuorumCommand.handleRemoveController(admin, REMOVE_CONTROLLER_ID,
                     REMOVE_DIRECTORY_ID_STRING, false, true)));
-        assertTrue(stdout.contains("Removed KRaft controller " + REMOVE_CONTROLLER_ID
-                + " with directory id " + REMOVE_DIRECTORY_ID_STRING),
-            "Expected 'Removed' line in stdout: " + stdout);
-        assertTrue(stdout.contains("Unregistered KRaft controller " + REMOVE_CONTROLLER_ID),
-            "Expected 'Unregistered' line in stdout: " + stdout);
+        assertEquals(
+            "Removed KRaft controller " + REMOVE_CONTROLLER_ID
+                + " with directory id " + REMOVE_DIRECTORY_ID_STRING
+                + System.lineSeparator()
+                + "Unregistered KRaft controller " + REMOVE_CONTROLLER_ID,
+            stdout);
     }
 
     @Test
