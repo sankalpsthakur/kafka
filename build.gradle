@@ -1175,8 +1175,11 @@ project(':core') {
   dependencies {
     releaseOnly log4jReleaseLibs
     // `core` is often used in users' tests, define the following dependencies as `api` for backwards compatibility
-    // even though the `core` module doesn't expose any public API
+    // even though the `core` module doesn't expose any public API.
+    // `kafka.server.KafkaConfig` extends `org.apache.kafka.server.config.AbstractKafkaConfig` from `:server`,
+    // so `kafka-server` must be compile-scoped for consumers (KAFKA-21011).
     api project(':clients')
+    api project(':server')
     api libs.scalaLibrary
 
     compileOnly log4j2Libs
@@ -1192,7 +1195,6 @@ project(':core') {
     implementation project(':tools:tools-api')
     implementation project(':raft')
     implementation project(':storage')
-    implementation project(':server')
     implementation project(':coordinator-common')
     implementation project(':share-coordinator')
     implementation project(':mirror-coordinator')
@@ -1471,6 +1473,28 @@ project(':core') {
   checkstyle {
     configProperties = checkstyleConfigProperties("import-control-core.xml")
   }
+
+  // Guard KAFKA-21011: `kafka.server.KafkaConfig` extends a type in `:server`, so the
+  // published kafka_2.13 POM must put kafka-server on the compile classpath.
+  tasks.register('checkPublishedPom') {
+    group = 'Verification'
+    description = 'Verify kafka-server is compile-scoped in the published kafka_2.13 POM'
+    dependsOn 'generatePomFileForMavenJavaPublication'
+    def pomFile = layout.buildDirectory.file('publications/mavenJava/pom-default.xml')
+    inputs.file(pomFile)
+    doLast {
+      def pom = new groovy.xml.XmlSlurper(false, false).parse(pomFile.get().asFile)
+      def kafkaServer = pom.dependencies.dependency.find { it.artifactId.text() == 'kafka-server' }
+      if (kafkaServer == null) {
+        throw new GradleException("Published POM for ${base.archivesName.get()} is missing kafka-server")
+      }
+      def scope = kafkaServer.scope.text()
+      if (scope && scope != 'compile') {
+        throw new GradleException("kafka-server must have compile scope in the published ${base.archivesName.get()} POM (KAFKA-21011), found '${scope}'")
+      }
+    }
+  }
+  check.dependsOn('checkPublishedPom')
 
   sourceSets {
     // Set java/scala source folders in the `scala` block to enable joint compilation
