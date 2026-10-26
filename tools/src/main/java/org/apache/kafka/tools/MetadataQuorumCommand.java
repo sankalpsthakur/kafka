@@ -506,16 +506,16 @@ public class MetadataQuorumCommand {
         if (!dryRun) {
             removeRaftVoter(admin, controllerId, directoryId, unregister);
         }
-        System.out.printf("%sKRaft controller %d with directory id %s%n",
-            dryRun ? "DRY RUN of removing " : "Removed ",
+        System.out.printf("%s KRaft controller %d with directory id %s%n",
+            dryRun ? "DRY RUN of removing" : "Removed",
             controllerId,
             directoryId);
         if (unregister) {
             if (!dryRun) {
                 unregisterController(admin, controllerId);
             }
-            System.out.printf("%sKRaft controller %d%n",
-                dryRun ? "DRY RUN of unregistering " : "Unregistered ",
+            System.out.printf("%s KRaft controller %d%n",
+                dryRun ? "DRY RUN of unregistering" : "Unregistered",
                 controllerId);
         }
     }
